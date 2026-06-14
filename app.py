@@ -14,7 +14,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return {"status": "AI API is running smoothly"}
+    return {"status": "AI API is running smoothly & prominent"}
 
 @app.post("/api/chat")
 async def chat(payload: ChatRequest):

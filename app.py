@@ -1,34 +1,31 @@
 import os
+import pymysql
 from fastapi import FastAPI
-from pydantic import BaseModel
-# import your AI modules here (e.g., google-generativeai, langchain)
+from contextlib import asynccontextmanager
 
-app = FastAPI(
-    title="AI MySQL Chatbot API",
-    description="FastAPI backend connected to WordPress"
-)
+def test_database_connection():
+    try:
+        connection = pymysql.connect(
+            host=os.environ.get('DB_HOST'),
+            user=os.environ.get('DB_USER'),
+            password=os.environ.get('DB_PASSWORD'),
+            database=os.environ.get('DB_NAME'),
+            port=3306,
+            connect_timeout=10
+        )
+        print("✅ DATABASE CONNECTED SUCCESSFULLY TO HOSTINGRAJA!", flush=True)
+        connection.close()
+    except Exception as e:
+        print(f"❌ DATABASE CONNECTION FAILED: {e}", flush=True)
 
-# Define the structure of incoming data from WordPress
-class ChatRequest(BaseModel):
-    message: str
+# This triggers the test immediately when Uvicorn starts the app
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    test_database_connection()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
-def home():
-    return {"status": "AI API is running smoothly, want to learn api"}
-
-@app.post("/api/chat")
-async def chat(payload: ChatRequest):
-    user_message = payload.message
-    
-    # --- Your AI / LangChain Logic Goes Here ---
-    # response = your_ai_model_generate(user_message)
-    ai_response = f"FastAPI received: {user_message}"
-    # -------------------------------------------
-    
-    return {"response": ai_response}
-
-if __name__ == "__main__":
-    import uvicorn
-    # Render dynamically assigns a PORT environment variable
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+def read_root():
+    return {"status": "running"}

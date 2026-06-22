@@ -1,34 +1,22 @@
 import os
 from fastapi import FastAPI
-from pydantic import BaseModel
-# import your AI modules here (e.g., google-generativeai, langchain)
+from sqlalchemy import create_engine, text
 
-app = FastAPI(
-    title="AI MySQL Chatbot API",
-    description="FastAPI backend connected to WordPress"
-)
+app = FastAPI()
 
-# Define the structure of incoming data from WordPress
-class ChatRequest(BaseModel):
-    message: str
+# Get the URL from the Environment Group you linked
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-@app.get("/")
-def home():
-    return {"status": "AI API is running smoothly & prominent"}
+# Create the database connection engine
+engine = create_engine(DATABASE_URL)
 
-@app.post("/api/chat")
-async def chat(payload: ChatRequest):
-    user_message = payload.message
-    
-    # --- Your AI / LangChain Logic Goes Here ---
-    # response = your_ai_model_generate(user_message)
-    ai_response = f"FastAPI received: {user_message}"
-    # -------------------------------------------
-    
-    return {"response": ai_response}
-
-if __name__ == "__main__":
-    import uvicorn
-    # Render dynamically assigns a PORT environment variable
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+@app.get("/test-db")
+def test_connection():
+    try:
+        # Use a context manager to open/close the connection safely
+        with engine.connect() as connection:
+            # Run a simple query to verify
+            result = connection.execute(text("SELECT 1"))
+            return {"status": "Database connected successfully!", "data": result.scalar()}
+    except Exception as e:
+        return {"status": "Connection failed", "error": str(e)}

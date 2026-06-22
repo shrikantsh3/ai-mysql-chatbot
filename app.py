@@ -1,46 +1,34 @@
 import os
-import pymysql
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
+from pydantic import BaseModel
+# import your AI modules here (e.g., google-generativeai, langchain)
 
-def test_database_connection():
-    print("⏳ Attempting to connect to HostingRaja database...", flush=True)
-    try:
-        connection = pymysql.connect(
-            host=os.environ.get('DB_HOST'),
-            user=os.environ.get('DB_USER'),
-            password=os.environ.get('DB_PASSWORD'),
-            database=os.environ.get('DB_NAME'),
-            port=3306,
-            connect_timeout=10
-        )
-        print("✅ DATABASE CONNECTED SUCCESSFULLY TO HOSTINGRAJA!", flush=True)
-        
-        # Verify read access
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT VERSION();")
-            version = cursor.fetchone()
-            print(f"📊 HostingRaja Database Version: {version[0]}", flush=True)
-            
-        connection.close()
-    except Exception as e:
-        print(f"❌ DATABASE CONNECTION FAILED: {e}", flush=True)
+app = FastAPI(
+    title="AI MySQL Chatbot API",
+    description="FastAPI backend connected to WordPress"
+)
 
-# The lifespan context manager handles tasks when the app starts up and shuts down
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # This runs exactly when Uvicorn starts the server application
-    test_database_connection()
-    yield
-    # Any cleanup code can go here after the yield
+# Define the structure of incoming data from WordPress
+class ChatRequest(BaseModel):
+    message: str
 
-# Initialize FastAPI with the lifespan handler
-app = FastAPI(lifespan=lifespan)
-
-# Root route required for Render's HTTP health checks
 @app.get("/")
-def read_root():
-    return {
-        "status": "online",
-        "message": "FastAPI service is running smoothly."
-    }
+def home():
+    return {"status": "AI API is running smoothly & prominent"}
+
+@app.post("/api/chat")
+async def chat(payload: ChatRequest):
+    user_message = payload.message
+    
+    # --- Your AI / LangChain Logic Goes Here ---
+    # response = your_ai_model_generate(user_message)
+    ai_response = f"FastAPI received: {user_message}"
+    # -------------------------------------------
+    
+    return {"response": ai_response}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Render dynamically assigns a PORT environment variable
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
